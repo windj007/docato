@@ -1,0 +1,16 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+{% load i18n %}
+<html>
+	<script type="text/javascript">
+		location.replace("{{ base_url|safe }}{{ query }}");
+	</script>
+	<noscript>
+		<meta http-equiv="refresh" content="0; url={{ base_url }}{{ query }}">
+	</noscript>
+<body>
+	<h1>
+		{% trans 'If you are still not redirected to search page please click the following link' %}
+		<a href="{{ base_url }}{{ query }}" target="browserFrame">{{ query }}</a>
+	</h1>
+</body>
+</html>

@@ -1,0 +1,13 @@
+.chunk.highlighted {
+	background: #FFAEAE;
+	color: #410000;
+}
+
+.chunk.alert {
+	background: #FF0000;
+	color: #FFFFFF;
+}
+
+body {
+	overflow-x: hidden;
+}

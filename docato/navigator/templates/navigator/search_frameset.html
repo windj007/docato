@@ -1,0 +1,17 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/frameset.dtd">
+{% load i18n %}
+<html>
+<head>
+	<title>
+		{% trans "Information extraction helper" %}
+	</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+
+<frameset rows="295,*" cols="*" frameborder="0" framespacing="0">
+    <frame src="{% url 'search_toolbar' subj_id %}" scrolling="no" noresize>
+   	<frame src="{% url 'search_empty' %}" name="browserFrame">
+   	<noframes>{% trans 'This application needs frames enabled to work properly' %}</noframes>
+</frameset>
+
+</html>

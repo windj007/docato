@@ -1,0 +1,132 @@
+{% load i18n %}
+<div id="frametype_{{ frametype.id }}" class="panel panel-default frametype-panel" data-frametype-id="{{ frametype.id }}">
+	<div class="panel-heading">
+		<b class="frametype-name" data-name="name">{{ frametype.name }}</b>
+		{% if 'can_edit_typesystem' in subject_perms %}
+			<div class="btn-group">
+				<div class="btn-group">
+					<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+						{% trans 'Add Slot' %}
+						<span class="caret"></span>
+					</button>
+					<ul class="dropdown-menu add_slot_menu" role="menu">
+						<li data-slot-type="class_label"><a href="javascript:void(0)">{% trans 'Class Label' %}</a></li>
+						<li data-slot-type="integer"><a href="javascript:void(0)">{% trans 'Integer' %}</a></li>
+						<li data-slot-type="real"><a href="javascript:void(0)">{% trans 'Real' %}</a></li>
+						<li data-slot-type="object"><a href="javascript:void(0)">{% trans 'Object' %}</a></li>
+						<li data-slot-type="class_label_list"><a href="javascript:void(0)">{% trans 'List of class labels' %}</a></li>
+						<li data-slot-type="integer_list"><a href="javascript:void(0)">{% trans 'List of integers' %}</a></li>
+						<li data-slot-type="real_list"><a href="javascript:void(0)">{% trans 'List of real numbers' %}</a></li>
+						<li data-slot-type="object_list"><a href="javascript:void(0)">{% trans 'List of objects' %}</a></li>
+					</ul>
+				</div>
+				<button class="btn btn-default clone_frametype">
+					{% trans 'Clone' %}
+				</button>
+				<button class="btn btn-default delete_frametype">
+					<span class="glyphicon glyphicon-trash"></span>
+				</button>
+			</div>
+			
+			<span>
+				<b>{% trans 'Type is standalone' %}</b>:			
+				<span class="frametype-standalone"
+					data-type="select"
+					data-value="{% if frametype.standalone %}1{% else %}0{% endif %}"
+					data-source='{ 0 : "{% trans "No" %}", 1 : "{% trans "Yes" %}", }'
+					data-original-title="{% trans 'Is this type standalone or acts only as a part of others?' %}"
+					data-name="standalone">{% if frametype.standalone %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</span>
+			</span>
+		{% endif %}
+	</div>
+	<table class="table table-striped slots_list">
+		<thead>
+			<tr>
+				<th class="title">{% trans 'Title' %}</th>
+				<th class="type">{% trans 'Type' %}</th>
+				<th>{% trans 'Description' %}</th>
+				<th>{% trans 'Other Properties' %}</th>
+				{% if 'can_edit_typesystem' in subject_perms %}
+				<th class="order">{% trans 'Order' %}</th>
+				<th class="delete">{% trans 'Delete' %}</th>
+				{% endif %}
+			</tr>
+		</thead>
+		<tbody>
+			{% for slot in frametype.slots.all|dictsort:"order" %}
+				{% include slot.template_name %}
+			{% endfor %}
+		</tbody>
+	</table>
+</div>
+{% if 'can_edit_typesystem' in subject_perms %}
+<script type="text/javascript">
+	jQuery(document).ready(function ($) {
+		var frametype_panel = $('#frametype_{{ frametype.id }}');
+		var frametypes_list = $('#frametypes_list');
+		
+		frametype_panel.find('.add_slot_menu li').click(function () {
+			$.ajax({
+				url : "{% url 'add_slot' subject.id frametype.id %}",
+				type : 'POST',
+				data : {
+					csrfmiddlewaretoken : "{{ csrf_token }}",
+					slot_type : $(this).attr('data-slot-type')
+				},
+				success : function (data) {
+					frametype_panel.find('.slots_list tbody').append(data);
+				}
+			});
+		});
+		
+		frametype_panel.find('.clone_frametype').click(function () {
+			var self = $(this);
+			self.button(gettext('Loading...'));
+			$.ajax({
+				url : "{% url 'clone_frametype' subject.id frametype.id %}",
+				success : function (data) {
+					frametype_panel.after(data);
+					self.button('reset');
+				}
+			});
+		});
+		
+		frametype_panel.find('.delete_frametype').click(function () {
+			bootbox.confirm("{% trans 'Are you sure to delete this type?' %}", function (res) {
+				if (res) {
+					$.ajax({
+						url : "{% url 'delete_frametype' subject.id frametype.id %}",
+						success : function () {
+							frametype_panel.fadeOut('fast', function () {
+								frametype_panel.remove();
+							})
+						},
+						error: function () {
+							bootbox.alert("{% trans 'Please ensure that no references to this type exist' %}");
+						}
+					});
+				}
+			});
+		});
+		
+		frametype_panel.find('.frametype-name').editable({
+			mode : 'inline',
+			url : "{% url 'update_frametype' subject.id frametype.id %}",
+			send : 'always',
+			params : { 'csrfmiddlewaretoken' : "{{ csrf_token }}" },
+			validate : function (value) {
+				if($.trim(value) == '') 
+				    return "{% trans 'Name cannot be empty' %}";
+			}
+		});
+		
+		
+		frametype_panel.find('.frametype-standalone').editable({
+			mode : 'inline',
+			url : "{% url 'update_frametype' subject.id frametype.id %}",
+			send : 'always',
+			params : { 'csrfmiddlewaretoken' : "{{ csrf_token }}" }
+		});
+	});
+</script>
+{% endif %}

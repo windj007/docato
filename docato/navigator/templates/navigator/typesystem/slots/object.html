@@ -1,0 +1,19 @@
+{% extends 'navigator/typesystem/slots/base.html' %}
+{% load i18n %}
+{% block other_properties %}
+	<b>{% trans 'Is embedded' %}</b>:
+	<span class="inline-editable" data-type="select"
+		data-value="{% if slot.embedded %}1{% else %}0{% endif %}"
+		data-source='{ 0 : "{% trans "No" %}", 1 : "{% trans "Yes" %}", }'
+		data-original-title="{% trans 'Is value must be embedded?' %}"
+		data-name="embedded">{% if slot.embedded %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</span>
+	<br />
+	<b>{% trans 'Value type' %}</b>:
+	<span class="inline-editable" data-type="select"
+		data-value="{{ slot.value_type.id }}" data-source="{% url 'list_frametypes_json' subject.id %}"
+		data-name="value_type" data-original-title="{% trans 'Select type' %}">{{ slot.value_type.name }}</span>
+	<a href="#frametype_{{ slot.value_type.id }}">
+		<span class="glyphicon glyphicon-share-alt" data-toggle="tooltip" title="{% trans 'Go to the type declaration' %}"></span>
+	</a>
+	<br />
+{% endblock other_properties %}

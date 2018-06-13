@@ -1,0 +1,24 @@
+.navigator #content {
+	width: 1000px;
+}
+
+.navigator #new_subject {
+	text-align: center;
+}
+
+.navigator #new_subject #id_name {
+	width: 300px
+}
+
+.navigator #subjects {
+	width: 100%;
+	margin-top: 10px;
+}
+
+.navigator #subjects tbody .name {
+	text-align: left;
+}
+
+.navigator #subjects .timestamp {
+	width: 230px;
+}

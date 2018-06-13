@@ -1,0 +1,17 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+{% load staticfiles %}
+<html>
+<head>
+	<script type="text/javascript" src="{% static "navigator/js/jquery-1.9.1.js" %}"></script>
+</head>
+<body>
+	<form action="http://onlinelibrary.wiley.com/cochranelibrary/search" method="POST" style="display: none;">
+		<input type="text" name="searchRows[0].searchCriterias[0].term" value="{{ query }}" />
+	</form>
+	<script type="text/javascript">
+		jQuery(document).ready(function ($) {
+			$('form').submit();
+		});
+	</script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+{% load i18n %}
+<tr id="slot_{{ slot.id }}" class="slot_panel" data-slot-id="{{ slot.id }}">
+	<td><span class="inline-editable" data-name="name">{{ slot.name }}</span></td>
+	<td>{{ slot.type_name }}</td>
+	<td><span class="inline-editable" data-name="description">{{ slot.description }}</span></td>
+	<td>{% block other_properties %}{% endblock other_properties %}</td>
+	{% if 'can_edit_typesystem' in subject_perms %}
+	<td><span class="inline-editable" data-name="order">{{ slot.order }}</span></td>
+	<td><a href="javascript:void(0)" class="delete_slot"><span class="glyphicon glyphicon-trash"></span></a></td>
+	<script type="text/javascript">
+		jQuery(document).ready(function ($) {
+			var slot_panel = $('#slot_{{ slot.id }}');
+
+			slot_panel.find('.inline-editable').editable({
+				placement : 'top',
+				url : "{% url 'update_slot' subject.id frametype.id slot.id %}",
+				send : 'always',
+				params : { 'csrfmiddlewaretoken' : "{{ csrf_token }}" },
+				validate : function (value) {
+					if($.trim(value) == '') 
+					    return "{% trans 'This field cannot be empty' %}";
+				}
+			});
+			
+			function reorderSlots() {
+				var tbody = slot_panel.parent();
+				var all_slots = tbody.find('.slot_panel');
+				all_slots.sort(function (a, b) {
+					var $a_order = parseInt($(a).find('[data-name=order]').html());
+					var $b_order = parseInt($(b).find('[data-name=order]').html());
+					return $a_order - $b_order;
+				});
+				all_slots.detach().appendTo(tbody);
+			}
+
+			slot_panel.find('.inline-editable[data-name=order]').editable('option', 'success', function () {
+				setTimeout(reorderSlots, 50);
+			});
+
+			slot_panel.find('.delete_slot').click(function () {
+				bootbox.confirm("{% trans 'Are you sure to delete this slot?' %}", function (res) {
+					if (res) {
+						$.ajax({
+							url : "{% url 'delete_slot' subject.id frametype.id slot.id %}",
+							success : function () {
+								slot_panel.fadeOut('fast', function () {
+									slot_panel.remove();
+								});
+							},
+							error : function () {
+								bootbox.alert("{% trans 'Please delete all the values of that slot first or allow cascade deletion' %}");
+							}
+						});
+					}
+				});
+			});
+			
+			{% block slot_js_extra %}{% endblock slot_js_extra %}
+		});
+	</script>
+	{% endif %}
+</tr>

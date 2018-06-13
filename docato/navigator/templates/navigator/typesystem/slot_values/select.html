@@ -1,0 +1,13 @@
+<select id="new_value" class="form-control">
+	{% for val, txt in possible_values %}
+		<option value="{{ val }}"{% if value == val %} selected{% endif %}>{{ txt }}</option>
+	{% endfor %}
+</select>
+<script type="text/javascript">
+jQuery(document).ready(function ($) {
+	$('#new_value').selectize({
+	    create: true,
+	    sortField: 'text'
+	});
+});
+</script>

@@ -1,0 +1,15 @@
+#summary_wrapper {
+	height: 700px;
+}
+
+#summary_wrapper .fht-table-wrapper {
+	overflow: visible;
+}
+
+#features td {
+	padding-top: 10px;
+}
+
+table.floatThead-table {
+    background-color: #FFF;
+}
