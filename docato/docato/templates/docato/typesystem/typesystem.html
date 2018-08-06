@@ -1,0 +1,74 @@
+{% extends "docato/base.html" %}
+{% load staticfiles %}
+{% load i18n %}
+{% load guardian_tags %}
+
+{% block extrahead %}
+	{{ block.super }}
+	<link rel="stylesheet" type="text/css" href="{% static "docato/css/bootstrap-editable.css" %}">
+
+	<script type="text/javascript" src="{% static 'docato/js/bootstrap-editable.min.js' %}"></script>
+{% endblock extrahead %}
+
+{% block navbar %}
+	<li><a href="{% url 'projects' %}">{% trans 'Projects' %}</a></li>
+	<li><a href="{% url 'project' subject.project.id %}">{{ subject.project.name }}</a></li>
+	<li><a href="{% url 'subject_page' subject.id %}">{{ subject.name }}</a></li>
+	<li><a href="javascript:void(0)">{% trans 'Type system' %}</a></li>
+{% endblock navbar %}
+
+{% block content %}
+
+{% get_obj_perms user for subject as "subject_perms" %}
+<div class="container">
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<b>{% trans 'Object Types' %}</b>
+			{% if 'can_edit_typesystem' in subject_perms %}
+			<a href="javascript:void(0)" id="add_frametype" class="pull-right"><span class="glyphicon glyphicon-plus"></span></a>
+			<span class="hmargin pull-right">
+				<b>{% trans 'Slot deletion allowed' %}</b>:
+				<span id="allow_sval_cascade_delete" data-type="select"
+					data-value="{% if subject.allow_sval_cascade_delete %}1{% else %}0{% endif %}"
+					data-source='{ 0 : "{% trans "No" %}", 1 : "{% trans "Yes" %}", }'
+					data-original-title="{% trans 'Allow to delete slots with automatic cascade delection of their values?' %}"
+					data-name="allow_sval_cascade_delete">
+					{% if subject.allow_sval_cascade_delete %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}
+				</span>
+			</span>
+			{% endif %}
+		</div>
+		<div class="panel-body" id="frametypes_list">
+			{% for frametype in subject.types.all %}
+				{% include 'docato/typesystem/frame_type.html' %}
+			{% endfor %}
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript">
+	jQuery(document).ready(function ($) {
+		var frametypes_list = $('#frametypes_list');
+		
+		$('#add_frametype').click(function () {
+			var self = $(this);
+			self.button(gettext('Loading...'));
+			$.ajax({
+				url : "{% url 'add_frametype' subject.id %}",
+				success : function (data) {
+					frametypes_list.append(data);
+					self.button('reset');
+				}
+			});
+		});
+		
+		$('#allow_sval_cascade_delete').editable({
+			placement : 'top',
+			url : "{% url 'update_subject' subject.id %}",
+			send : 'always',
+			params : { 'csrfmiddlewaretoken' : "{{ csrf_token }}" }
+		});
+	});
+</script>
+
+{% endblock content %}

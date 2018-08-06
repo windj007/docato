@@ -1,54 +1,53 @@
 version: '3'
 services:
-  med-web-helper-wui:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.wui
+  wui:
+    image: windj007/docato-wui
     ports:
      - "80:80"
     depends_on:
-     - med-web-helper-redis
-     - med-web-helper-mysql
-#     - med-web-helper-preproc
+     - redis
+     - mysql
+#     - preproc
     networks:
-     - med-web-helper
+     - docato
     volumes:
-     - "./data/wui/log:/docato_data/log"
-     - "./data/wui/media:/docato_data/media"
+     - "/home/windj/projects/med_web_helper/new_data/wui/log:/docato_data/log"
+     - "/home/windj/projects/med_web_helper/new_data/wui/media:/docato_data/media"
     restart: unless-stopped
 
-#  med-web-helper-preproc:
-#    build:
-#      context: .
-#      dockerfile: dockerfiles/Dockerfile.preproc
-#    depends_on:
-#     - med-web-helper-mysql
-#     - med-web-helper-redis
-#    networks:
-#     - med-web-helper
-#    restart: unless-stopped
+  preproc:
+    image: windj007/docato-preproc
+    depends_on:
+     - mysql
+     - redis
+    networks:
+     - docato
+    volumes:
+     - "/home/windj/projects/med_web_helper/new_data/wui/log:/docato_data/log"
+     - "/home/windj/projects/med_web_helper/new_data/wui/media:/docato_data/media"
+    restart: unless-stopped
 
-  med-web-helper-redis:
+  redis:
     image: redis
     networks:
-      med-web-helper:
+      docato:
         aliases:
-         - med-web-helper-redis
+         - redis
     restart: unless-stopped
 
-  med-web-helper-mysql:
+  mysql:
     environment:
       MYSQL_ROOT_PASSWORD: pwd
-      MYSQL_DATABASE: med_web_helper
+      MYSQL_DATABASE: docato
     volumes:
-     - ./data/mysql:/var/lib/mysql
+     - /home/windj/projects/med_web_helper/new_data/mysql:/var/lib/mysql
     image: mysql:5.5
     command: mysqld --character-set-server=utf8 --collation-server=utf8_general_ci --max-allowed-packet=104857600
     networks:
-      med-web-helper:
+      docato:
         aliases:
-         - med-web-helper-mysql
+         - mysql
     restart: unless-stopped
 
 networks:
-  med-web-helper:
+  docato:

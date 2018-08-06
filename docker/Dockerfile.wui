@@ -1,26 +1,15 @@
-FROM python:2.7-stretch
+FROM windj007/docato-base
 MAINTAINER Roman <windj007@gmail.com>
 
-RUN apt-get clean && apt-get update
-
-RUN pip install -U pip
-RUN pip install -U django==1.8 mysql-connector-python==8.0.11
-RUN pip install celery==3.1
-RUN pip install cython==0.28.3
-RUN pip install numpy==1.14.4 scipy==1.1.0
-RUN pip install django-guardian==1.4.9 unidecode==1.0.22 lazy==1.3 nltk==3.3 chardet==3.0.4
-RUN pip install lxml==4.2.1
-RUN pip install django-polymorphic==1.3
-RUN pip install beautifulsoup==3.2.1
-RUN pip install django-bootstrap3==9.1.0
-RUN pip install mysqlclient==1.3.12
-
-RUN pip install django-tables2==1.10
+RUN apt-get install -yqq apache2 libapache2-mod-wsgi
+RUN rm /etc/apache2/sites-enabled/*
+COPY docker/apache.conf /etc/apache2/sites-enabled/
 
 ADD docato /docato/src
-COPY docker/wui_entrypoint.sh /entrypoint.sh
+COPY docker/wui_entrypoint.sh /docato/entrypoint.sh
 
-ENV PYTHONPATH="/docato/src:$PYTHONPATH"
+ENTRYPOINT ["/docato/entrypoint.sh"]
+CMD ["apache2ctl", "-DFOREGROUND"]
 
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["/docato/src/manage.py", "runserver", "0.0.0.0:80"]
+RUN mkdir -p /docato_data/media/src && chown -R www-data:www-data /docato_data/media/src
+RUN pip install redis

@@ -1,0 +1,140 @@
+{% extends "docato/base.html" %}
+{% load staticfiles %}
+{% load i18n %}
+
+{% block extrahead %}
+	{{ block.super }}
+	<link rel="stylesheet" type="text/css" href="{% static "docato/css/summary.css" %}">
+
+	<script type="text/javascript" src="{% static 'docato/js/make_fill_height.js' %}"></script>
+	<script type="text/javascript" src="{% static 'docato/js/jquery.floatThead.min.js' %}"></script>
+{% endblock extrahead %}
+
+{% block navbar %}
+	<li><a href="{% url 'projects' %}">{% trans 'Projects' %}</a></li>
+	<li><a href="{% url 'project' subject.project.id %}">{{ subject.project.name }}</a></li>
+	<li><a href="{% url 'subject_page' subject.id %}">{{ subject.name }}</a></li>
+	<li class="active"><a href="javascript:void(0)">{% trans 'Summary table' %}</a></li>
+	<li><a id="swap_visible_values" class="pull-right" href="javascript:void(0)">{% trans 'Show cues' %}</a></li>
+<!-- 	<li><a href="{% url 'analysis' subject.id %}">{% trans 'Analysis' %}</a></li> -->
+{% endblock navbar %}
+
+{% block content %}
+
+<table id="features" class="table table-striped table-bordered table-condensed text-center" style="width: 500px; height: 400px">
+	<thead>
+		<tr>
+			<th>{% trans 'Document' %}</th>
+			<th>{% trans 'Frame' %}</th>
+			{% for slot_name in header_iterator %}
+				<th>{{ slot_name|safe }}</th>
+			{% endfor %}
+		</tr>
+	</thead>
+	<tbody>
+	{% for doc, frames in rows %}
+		{% for frame, values in frames %}
+			<tr>
+				{% if forloop.first %}
+				<th rowspan="{{ doc.standalone_frames.count }}"><a href="{% url 'view_doc' subject.id doc.id %}">{{ doc.title }}</a></th>
+				{% endif %}
+				<td id="frame_{{ frame.id }}">{{ frame.type.name }} {{ frame.name }}</td>
+				{% for value_type, is_list, value in values %}
+				<td>
+					{% if value_type == "none" %}
+						{% trans '-' %}
+					{% elif value_type == "simple" %}
+						{% if is_list %}
+							{% for val, txt in value %}
+								{% if txt %}
+									<span class="slot_value">
+										<span class="visible_value">{{ val }}</span>
+										<span class="popup_value glyphicon glyphicon-comment" data-toggle="tooltip" data-placement="right" title="{{ txt }}"></span>
+									</span>
+								{% else %}
+									{% trans '-' %}
+								{% endif %}{% spaceless %}
+									{% if not forloop.last %}
+									;<br />
+									{% endif %}
+								{% endspaceless %}
+							{% endfor %}
+						{% else %}
+							{% if value.1 %}
+								<span class="slot_value">
+									<span class="visible_value">{{ value.0 }}</span>
+									<span class="popup_value glyphicon glyphicon-comment" data-toggle="tooltip" data-placement="right" title="{{ value.1 }}"></span>
+								</span>
+							{% else %}
+								{% trans '-' %}
+							{% endif %}
+						{% endif %}
+					{% elif value_type == "ref" %}
+						{% if is_list %}
+							<ul class="sval_list_items">
+								{% for ref in value %}
+									<a href="#frame_{{ ref.id }}">{{ ref.type.name }} {{ ref.name }}</a></li>
+									{% spaceless %}
+										{% if not forloop.last %}
+										;<br />
+										{% endif %}
+									{% endspaceless %}
+								{% endfor %}
+							</ul>
+						{% else %}
+							<a href="#frame_{{ ref.id }}">{% trans 'Reference to' %} {{ value.type.name }} {{ value.name }}</a>
+						{% endif %}
+					{% else %}
+						qwe {{ value_type }}
+					{% endif %}
+				</td>
+				{% endfor %}
+			</tr>
+		{% endfor %}
+	{% endfor %}
+	</tbody>
+</table>
+
+<script type="text/javascript">
+jQuery(document).ready(function ($) {
+	var $features_table = $('#features');
+	function createFHT() {
+		$features_table.floatThead();
+// 		$features_table.fixedHeaderTable({
+// 			fixedColumn: true,
+// 			fixedColumns: 1
+// 		});
+	}
+	createFHT();
+
+	function swap_visible_values() {
+		$('.slot_value').each(function () {
+			var self = $(this);
+			var vis = self.find('.visible_value');
+			var popup = self.find('.popup_value');
+			var vis_text = vis.html();
+			var popup_text = popup.attr('data-original-title');
+			vis.html(popup_text);
+			popup.attr('data-original-title', vis_text);
+			popup.tooltip('fixTitle');
+		})
+		$features_table.floatThead('reflow');
+		// $features_table.fixedHeaderTable('destroy');
+		// createFHT();
+	}
+	var norm_values_visible = true;
+	var $swap_visible_values_link = $('#swap_visible_values');
+	$swap_visible_values_link.click(function () {
+		swap_visible_values();
+		if (norm_values_visible) {
+			$swap_visible_values_link.text('{% trans "Show values" %}');
+			norm_values_visible = false;
+		} else {
+			$swap_visible_values_link.text('{% trans "Show cues" %}');
+			norm_values_visible = true;
+		}
+	});
+});
+</script>
+
+{% endblock content %}

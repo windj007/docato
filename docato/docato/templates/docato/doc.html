@@ -1,0 +1,667 @@
+{% extends "docato/base.html" %}
+{% load staticfiles %}
+{% load render_table from django_tables2 %}
+{% load i18n %}
+{% load docato_extras %}
+{% load bootstrap3 %}
+{% load guardian_tags %}
+
+{% block extrahead %}
+	{{ block.super }}
+	<link rel="stylesheet" type="text/css" href="{% static "docato/css/background-colors.css" %}">
+	<link rel="stylesheet" type="text/css" href="{% static "docato/css/border-colors.css" %}">
+	<link rel="stylesheet" type="text/css" href="{% static "docato/css/bootstrap-editable.css" %}">
+	<link rel="stylesheet" type="text/css" href="{% static "docato/css/doc.css" %}">
+	<link rel="stylesheet" type="text/css" href="{% static "jstree/themes/default/style.min.css" %}">
+	<link rel="stylesheet" type="text/css" href="{% static "docato/css/selectize.css" %}">
+	<link rel="stylesheet" type="text/css" href="{% static "docato/css/selectize.bootstrap3.css" %}">
+
+	<script type="text/javascript" src="{% static 'docato/js/bootstrap-editable.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jstree/jstree.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'docato/js/selectize.js' %}"></script>
+	<script type="text/javascript" src="{% static 'docato/js/make_fill_height.js' %}"></script>
+{% endblock extrahead %}
+
+{% block navbar %}
+	<li><a href="{% url 'projects' %}">{% trans 'Projects' %}</a></li>
+	<li><a href="{% url 'project' subject.project.id %}">{{ subject.project.name }}</a></li>
+	<li><a href="{% url 'subject_page' subject.id %}">{{ subject.name }}</a></li>
+	<li class="active"><a href="javascript:void(0)">{{ doc.title|truncatechars:50 }}</a></li>
+{% endblock navbar %}
+
+{% block content %}
+
+{% get_obj_perms user for subject.project as "project_perms" %}
+{% get_obj_perms user for subject as "subject_perms" %}
+
+<span id="project_id" class="hidden">{{ subject.project.id }}</span>
+<span id="subject_id" class="hidden">{{ subject.id }}</span>
+<span id="doc_id" class="hidden">{{ doc.id }}</span>
+{% if 'change_project' in project_perms %}
+<span id="change_project" class="hidden">1</span>
+{% endif %}
+{% csrf_token %}
+
+<div class="container-fluid">
+	<div class="row">
+	{% if doc.state == 1 %}
+		<div class="col-md-3">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<b>{% trans 'Frames' %}</b>
+					<a id="tree_expand_all" class="pull-right" href="javascript:void(0)" data-toggle="tooltip" title="{% trans 'Expand all tree elements' %}">
+						<span class="glyphicon glyphicon-resize-full"></span>
+					</a>
+					<a id="tree_collapse_all" class="pull-right hidden" href="javascript:void(0)" data-toggle="tooltip" title="{% trans 'Collapse all tree elements' %}">
+						<span class="glyphicon glyphicon-resize-small"></span>
+					</a>
+				</div>
+				<ul id="extracted_data">
+				</ul>
+			</div>
+		</div>
+		
+		<div class="col-md-9">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<b>{% trans 'Content' %}</b>
+				</div>
+				<div class="panel-body" id="iframe_container">
+					<iframe id="doc_content" name="doc_content" src="{% url 'converted_doc' subject.id doc.id %}" frameborder="0">
+					</iframe>
+				</div>
+			</div>
+		</div>
+
+		<script type="text/javascript">
+			jQuery(document).ready(function ($) {
+				var extracted_data = $('#extracted_data');
+				
+				/*****************************************************************************/
+				/******************************* Page layout *********************************/
+				/*****************************************************************************/
+				var $footer = $('#footer');
+				make_fill_height($('#doc_content'), $footer, 400, 20);
+				make_fill_height(extracted_data, $footer, 400, 40);
+
+
+				/*****************************************************************************/
+				/**************************** Cues management ********************************/
+				/*****************************************************************************/
+				function DocSelection(window) {
+					this.value_begin = -1;
+					this.value_end = -1;
+					this.value = '';
+					
+					var doc = $(window.document);
+					var selected_tokens = doc.find('.highlighted');
+					
+					this.reset = function() {
+						selected_tokens.removeClass('highlighted');
+					}
+					
+					if (selected_tokens.length == 0)
+						return;
+
+					selected_tokens.sort(function (a, b) {
+						var a_char = parseInt(a.getAttribute('data-global-char-id'));
+						var b_char = parseInt(b.getAttribute('data-global-char-id'));
+						return a_char - b_char;
+					});
+					
+					this.value_begin = selected_tokens[0].getAttribute('data-token-id');
+					this.value_end = selected_tokens[selected_tokens.length - 1].getAttribute('data-token-id');
+
+					this.spans = []
+					var cur_start = parseInt(this.value_begin);
+					var cur_text = "";
+					var prev_token_id = cur_start;
+					for (var i = 0; i < selected_tokens.length; i++) {
+						var cur_tok = $(selected_tokens[i]);
+						var cur_token_id = parseInt(cur_tok.attr('data-token-id'));
+						if (cur_token_id - prev_token_id > 1) {
+							this.spans.push({
+								start : cur_start,
+								end : prev_token_id,
+								text : cur_text
+							});
+							cur_start = cur_token_id;
+							cur_text = "";
+						}
+						cur_text += (prev_token_id == cur_token_id ? '' : ' ') + cur_tok.text();
+						prev_token_id = cur_token_id;
+					}
+					this.spans.push({
+						start: cur_start,
+						end: prev_token_id,
+						text : cur_text
+					});
+					return this;
+				}
+				
+				function processTokensById(begin, end, callback) {
+					var doc = $(frames['doc_content'].document);
+					for (var i = begin; i <= end; i++)
+						callback.apply(doc.find('.token_' + i));
+				}
+				
+				function addCues(jstree_inst, sval_node, restore_selection) {
+					if (restore_selection === null)
+						restore_selection = false;
+					var selection = new DocSelection(frames['doc_content']);
+					if (selection.value_begin == -1) {
+						bootbox.alert("{% trans 'Please select something from the document' %}");
+						return;
+					}
+					$.ajax({
+						url : "{% url 'add_cues' doc.subject.id doc.id %}",
+						type : "POST",
+						data : {
+							csrfmiddlewaretoken: "{{ csrf_token }}",
+							sval : sval_node.data.sval_id,
+							cues : JSON.stringify(selection.spans)
+						},
+						success : function (data) {
+							jstree_inst.deselect_all();
+							for (var i = 0; i < data.length; i++) {
+								var elem = data[i];
+								jstree_inst.create_node(sval_node, elem, "last");
+								jstree_inst.select_node(elem);
+								var new_node = jstree_inst.get_node(elem);
+								processTokensById(new_node.data.start, new_node.data.end, function () {
+									this.addClass(new_node.data.classes);
+									this.attr('data-cue-id', new_node.data.id);
+								});
+							}
+							jstree_inst.open_node(sval_node.children[1]);
+							selection.reset();
+							if (restore_selection) {
+								jstree_inst.deselect_all();
+								jstree_inst.select_node(sval_node);
+							}
+						}
+					});
+				}
+				
+				function tryQuickAddQue() {
+					var jstree_inst = extracted_data.jstree(true);
+					var selected_node = jstree_inst.get_selected(true);
+					if (selected_node.length > 0) {
+						addCues(jstree_inst, selected_node[0], true);
+						jstree_inst.deselect_all();
+						jstree_inst.select_node(selected_node[0]);
+					} else
+						bootbox.alert("{% trans 'Could not quick add, because no slot in the object tree is selected' %}");					
+				}
+				
+				function clearCue(cue_node) {
+					processTokensById(cue_node.data.start, cue_node.data.end, function () {
+						this.removeClass(cue_node.data.classes);
+						this.removeAttr('data-cue-id');
+					});
+				}
+				
+				function deleteCue(jstree_inst, cue_node) {
+					$.ajax({
+						url : "{% url 'delete_cue' doc.subject.id doc.id %}",
+						type : "POST",
+						data : {
+							csrfmiddlewaretoken: "{{ csrf_token }}",
+							cue : cue_node.data.id
+						},
+						success : function () {
+							jstree_inst.delete_node(cue_node);
+							clearCue(cue_node);
+						}
+					});
+				}
+				
+				function clearAllCues(jstree_inst, sval_node) {
+					for (var i = 0; i < sval_node.children.length; i++) {
+						clearCue(jstree_inst.get_node(sval_node.children[i]));
+					}
+				}
+				
+				function deleteAllCues(jstree_inst, sval_node) {
+					for (var i = 0; i < sval_node.children.length; i++) {
+						deleteCue(jstree_inst, jstree_inst.get_node(sval_node.children[i]));
+					}
+				}
+				
+				function highlightCue(start, end) {
+					var classes = '.token_' + start;
+					for (var i = start + 1; i <= end; i++)
+						classes = classes + ',.token_' + i;
+					frames['doc_content'].postMessage(classes, '*');
+				}
+				
+
+				/*****************************************************************************/
+				/***************************** Values editing ********************************/
+				/*****************************************************************************/
+				function postAndUpdateValue(jstree_inst, sval_node, new_value) {
+					$.ajax({
+						url : "{% url 'update_sval_value' doc.subject.id doc.id %}",
+						type : "POST",
+						data : {
+							csrfmiddlewaretoken : "{{ csrf_token }}",
+							sval : sval_node.data.sval_id,
+							value : new_value
+						},
+						success : function (data) {
+							jstree_inst.rename_node(sval_node, data.name);
+							if (data.classes)
+								$(jstree_inst.get_node(sval_node, true)).addClass(data.classes);
+						},
+						error : function (req) {
+							promptNewValue(jstree_inst, sval_node, req.responseText, postAndUpdateValue);
+						}
+					});
+				}
+				
+				function promptNewValue(jstree_inst, sval_node, title, callback) {
+					$.ajax({
+						url : "{% url 'get_value_variants' doc.subject.id doc.id %}",
+						type : "POST",
+						data : {
+							csrfmiddlewaretoken : "{{ csrf_token }}",
+							sval : sval_node.data.sval_id
+						},
+						success : function (data) {
+							bootbox.dialog({
+								title : title,
+								message : data,
+								buttons: {
+									cancel : {
+										label : "{% trans 'Cancel' %}",
+										className : "btn-default"
+									},
+				                    success: {
+				                        label: "{% trans 'OK' %}",
+				                        className: "btn-primary",
+				                        callback: function () {
+				                        	var new_value = $('#new_value').val();
+											callback(jstree_inst, sval_node, new_value);
+				                        }
+				                    }
+				                }
+							});
+						}
+					});
+				}
+
+				function initValueUpdate(jstree_inst, sval_node) {
+					promptNewValue(jstree_inst,
+							sval_node,
+							"{% trans 'Please enter new value' %}",
+							postAndUpdateValue);
+				}
+
+				/*****************************************************************************/
+				/********************************* Frames ************************************/
+				/*****************************************************************************/
+				function recursivelyClearCues(jstree_inst, node) {
+					for (var i = 0; i < node.children.length; i++) {
+						var ch_node = jstree_inst.get_node(node.children[i]);
+						var ch_type = ch_node.type;
+						if (ch_type == 'simple') {
+							clearAllCues(jstree_inst, ch_node);
+						} else if (ch_type == 'list' || ch_type == 'embedded_frame') {
+							recursivelyClearCues(jstree_inst, ch_node);
+						}
+					}
+				}
+
+				function deleteFrameClient(jstree_inst, frame_node) {
+					recursivelyClearCues(jstree_inst, frame_node)
+					jstree_inst.delete_node(frame_node);
+				}
+				
+				/*****************************************************************************/
+				/****************************** Objects Tree *********************************/
+				/*****************************************************************************/
+				// **** frames ****
+				var new_frame_menu_item = {
+						icon : "glyphicon glyphicon-plus",
+						label : "{% trans 'Add new frame' %}",
+						action : function (data) {
+							var inst = $.jstree.reference(data.reference),
+								obj = inst.get_node(data.reference);
+							$.ajax({
+								url : "{% url 'add_frame' doc.subject.id doc.id %}",
+								type : "POST",
+								data : {
+									csrfmiddlewaretoken : "{{ csrf_token }}",
+									type : obj.id.split("_")[1]
+								},
+								success : function (data) {
+									inst.create_node(obj, data, "last");
+									inst.open_node(obj);
+									inst.select_node(data);
+								}
+							});
+						}
+					};
+				var delete_frame_menu_item = {
+						icon : "glyphicon glyphicon-trash",
+						label : "{% trans  'Delete frame' %}",
+						action : function (data) {
+							bootbox.confirm("{% trans 'Are you sure to delete the selected frames?' %}", function (result) {
+								if (!result)
+									return;
+								var inst = $.jstree.reference(data.reference),
+									obj = inst.get_node(data.reference);
+							
+								$.ajax({
+									url : "{% url 'delete_frames' doc.subject.id doc.id %}",
+									type : "POST",
+									data : {
+										csrfmiddlewaretoken : "{{ csrf_token }}",
+										ids : [ obj.id.split("_")[1] ]
+									},
+									success : function () {
+										deleteFrameClient(inst, obj);
+									}
+								});
+							});
+						}
+					};
+				var rename_frame_menu_item = {
+						icon : "glyphicon glyphicon-edit",
+						label : "{% trans  'Rename frame' %}",
+						action : function (data) {
+							var inst = $.jstree.reference(data.reference),
+								obj = inst.get_node(data.reference);
+							bootbox.prompt({
+								title: "{% trans 'Please enter the new title' %}",
+								value: obj.data.name,
+								callback : function (result) {
+									if (result === null)
+										return;
+									$.ajax({
+										url : "{% url 'rename_frame' doc.subject.id doc.id %}",
+										type : "POST",
+										data : {
+											csrfmiddlewaretoken : "{{ csrf_token }}",
+											id : obj.data.id,
+											name : result,
+											sval : obj.data.sval_id
+										},
+										success : function (data) {
+											obj.data.name = data.name;
+											inst.rename_node(obj, data.node_title);
+											$('.ref_to_' + obj.data.id).each(function () {
+												var ref_node = inst.get_node(this);
+												inst.rename_node(ref_node, data.refs[ref_node.data.sval_id]);
+											});
+										}
+									});
+								}
+							});
+						}
+					};
+				
+				// **** slot values ****
+				var highlight_sval_menu_item  = {
+						icon : "glyphicon glyphicon-eye-open",
+						label : "{% trans 'Highlight cues' %}",
+						action : function (data) {
+							var inst = $.jstree.reference(data.reference),
+								obj = inst.get_node(data.reference);
+							if (obj.children.length > 0) {
+								var first_cue = inst.get_node(obj.children[0]);
+								highlightCue(first_cue.data.start, first_cue.data.end);
+							}
+								
+						}
+					};
+				var add_cues_menu_item  = {
+						icon : "glyphicon glyphicon-plus",
+						label : "{% trans 'Add cues from selection' %}",
+						action : function (data) {
+							var inst = $.jstree.reference(data.reference),
+								obj = inst.get_node(data.reference);
+							addCues(inst, obj);
+						}
+					};
+				var sval_delete_all_cues_menu_item  = {
+						icon : "glyphicon glyphicon-fire",
+						label : "{% trans 'Delete all cues' %}",
+						action : function (data) {
+							bootbox.confirm("{% trans 'Are you sure to delete all cues?' %}", function (result) {
+								if (!result)
+									return;
+								var inst = $.jstree.reference(data.reference),
+									obj = inst.get_node(data.reference);
+								deleteAllCues(inst, obj);
+							});
+						}
+					};
+				var edit_sval_value_menu_item  = {
+						icon : "glyphicon glyphicon-pencil",
+						label : "{% trans 'Edit value' %}",
+						action : function (data) {
+							var inst = $.jstree.reference(data.reference),
+								obj = inst.get_node(data.reference);
+							initValueUpdate(inst, obj);
+						}
+					};
+				
+				// **** cues ****
+				var highlight_cue_menu_item  = {
+						icon : "glyphicon glyphicon-eye-open",
+						label : "{% trans 'Highlight cue' %}",
+						action : function (data) {
+							var inst = $.jstree.reference(data.reference),
+								obj = inst.get_node(data.reference);
+							highlightCue(obj.data.start, obj.data.end);
+						}
+					};
+				var delete_cue_menu_item  = {
+						icon : "glyphicon glyphicon-trash",
+						label : "{% trans 'Delete cue' %}",
+						action : function (data) {
+							bootbox.confirm("{% trans 'Are you sure to delete this cue?' %}", function (result) {
+								if (!result)
+									return;
+								var inst = $.jstree.reference(data.reference),
+									obj = inst.get_node(data.reference);
+								deleteCue(inst, obj);
+							});
+						}
+					};
+
+				// **** list ****
+				var add_list_element_menu_item  = {
+						icon : "glyphicon glyphicon-plus",
+						label : "{% trans 'Add value' %}",
+						action : function (data) {
+							var inst = $.jstree.reference(data.reference),
+								obj = inst.get_node(data.reference);
+							$.ajax({
+								url : "{% url 'add_list_value' doc.subject.id doc.id %}",
+								type : "POST",
+								data : {
+									csrfmiddlewaretoken : "{{ csrf_token }}",
+									frame : obj.data.frame,
+									slot : obj.data.slot
+								},
+								success : function (data) {
+									inst.deselect_all();
+									inst.create_node(obj, data, "last");
+									inst.select_node(data);
+								}
+							});
+						}
+					};
+				var delete_list_element_menu_item  = {
+						icon : "glyphicon glyphicon-trash",
+						label : "{% trans 'Delete' %}",
+						action : function (data) {
+							bootbox.confirm("{% trans 'Are you sure to delete this list element?' %}", function (result) {
+								if (!result)
+									return;
+								var inst = $.jstree.reference(data.reference),
+									obj = inst.get_node(data.reference);
+								$.ajax({
+									url : "{% url 'delete_list_value' doc.subject.id doc.id %}",
+									type : "POST",
+									data : {
+										csrfmiddlewaretoken : "{{ csrf_token }}",
+										id : obj.data.sval_id
+									},
+									success : function (data) {
+										deleteFrameClient(inst, obj); 
+									}
+								});
+							});
+						}
+					};
+				
+				// **** references ****
+				var goto_reference_value_menu_item  = {
+						icon : "glyphicon glyphicon-eye-open",
+						label : "{% trans 'Go to' %}",
+						action : function (data) {
+							var inst = $.jstree.reference(data.reference),
+								obj = inst.get_node(data.reference);
+							inst.deselect_all();
+							inst.select_node(inst.get_node('frame_' + obj.data.target));
+						}
+					};
+				
+				extracted_data.jstree({
+					core : {
+						check_callback : true,
+						themes : { stripes : true },
+						multiple : false,
+						data : {
+							'url' : "{% url 'extracted_data' subject.id doc.id %}",
+							'data' : function (node) {
+								return { id : node.id }; 
+							}
+						}
+					},
+					contextmenu : {
+						select_node : false,
+						show_at_node : false,
+						items : function (node, callback) {
+							var menu_items = {};
+							if (node.type == 'frametype') {
+								menu_items = {
+									'new_frame' : new_frame_menu_item
+								};
+							} else if (node.type == 'frame') {
+								menu_items = {
+									'rename_frame' : rename_frame_menu_item,
+									'delete_frame' : delete_frame_menu_item
+								};
+							} else if (node.type == 'simple') {
+								menu_items = {
+									'edit_value' : edit_sval_value_menu_item,
+									'highlight_sval' : highlight_sval_menu_item,
+									'add_cues' : add_cues_menu_item,
+									'delete_cues' : sval_delete_all_cues_menu_item,
+								};
+								if (node.data.can_delete)
+									menu_items['delete'] = delete_list_element_menu_item;
+							} else if (node.type == 'list') {
+								menu_items = {
+									'add_elem' : add_list_element_menu_item
+								};
+							} else if (node.type == 'cue') {
+								menu_items = {
+									'highlight_cue' : highlight_cue_menu_item,
+									'delete_cue' : delete_cue_menu_item,
+								};
+							} else if (node.type == 'embedded_frame') {
+								menu_items['rename_frame'] = rename_frame_menu_item
+								if (node.data.can_delete)
+									menu_items['delete'] = delete_list_element_menu_item
+							} else if (node.type == 'reference') {
+								menu_items = {
+									'edit_reference' : edit_sval_value_menu_item,
+									'goto_reference' : goto_reference_value_menu_item
+								};
+								if (node.data.can_delete)
+									menu_items['delete'] = delete_list_element_menu_item;
+							}
+							callback(menu_items);
+						}
+					},
+					types : {
+						frametype : { icon : "glyphicon glyphicon-th-large" },
+						frame : { icon : "glyphicon glyphicon-file" },
+						simple : { icon : "glyphicon glyphicon-paperclip" },
+						list : { icon : "glyphicon glyphicon-list" },
+						cue : { icon : "glyphicon glyphicon-tag" },
+						embedded_frame : { icon : "glyphicon glyphicon-paperclip" },
+						reference : { icon : "glyphicon glyphicon-link" },
+					},
+					plugins : [ "types", "contextmenu", "wholerow" ]
+				});
+				
+				var tree_expand_all = $('#tree_expand_all');
+				var tree_collapse_all = $('#tree_collapse_all');
+				tree_expand_all.click(function () {
+					extracted_data.jstree(true).open_all();
+					tree_expand_all.addClass('hidden');
+					tree_collapse_all.removeClass('hidden');
+				});
+				tree_collapse_all.click(function () {
+					extracted_data.jstree(true).close_all();
+					tree_expand_all.removeClass('hidden');
+					tree_collapse_all.addClass('hidden');
+				});
+				
+				// **** feedback ****
+				function highlightNodeInTree(node_id) {
+					var tree = extracted_data.jstree(true);
+					tree.deselect_all();
+					var target_node = tree.get_node(node_id);
+					for (var i = target_node.parents.length - 1; i >= 0; i--)
+						extracted_data.jstree(true).open_node(target_node.parents[i]);
+					extracted_data.animate({ scrollTop: ($('#' + node_id).offset().top - 10 - extracted_data.children().first().offset().top)+ 'px' }, 400).promise().done(function () {
+				 		var cnt = 0, timer_id = null, state = 0;
+			    		function toggleAlert() {
+			    			clearTimeout(timer_id);
+			    			if (state == 0) {
+			    				tree.select_node(target_node);
+			    			} else {
+			    				tree.deselect_node(target_node);
+			    			}
+			    			state = 1 - state;
+			    			cnt++;
+			    			if (cnt < 11)
+			    				timer_id = setTimeout(toggleAlert, 100);
+			    		}
+			    		toggleAlert();
+					});
+				}
+
+				$(window).on("message", function(e) {
+					var data = JSON.parse(e.originalEvent.data);
+					if (data['cmd'] == 'highlight_cue') {
+						highlightNodeInTree('cue_' + data['id']);
+					} else if (data['cmd'] == 'quick_add') {
+						tryQuickAddQue();
+					}
+				});
+			});
+		</script>
+	{% elif doc.state == -1 %}
+		<div class="alert alert-danger">
+			{% trans 'An error has occurred during preprocessing of the uploaded document. Please contact administrators.' %}
+		</div>
+	{% else %}
+		<div class="alert alert-info">
+			{% trans 'The document is still being processed. Please wait. The page will automatically reload every 2 seconds.' %}
+		</div>
+		<script type="text/javascript">
+			setTimeout(function(){ window.location.reload(true); }, 2000);
+		</script>
+	{% endif %}
+	</div>
+</div>
+
+{% endblock content %}

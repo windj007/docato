@@ -1,0 +1,54 @@
+{% extends "docato/base.html" %}
+{% load i18n %}
+{% load bootstrap3 %}
+{% load guardian_tags %}
+{% load render_table from django_tables2 %}
+
+{% block navbar %}
+	<li><a href="{% url 'projects' %}">{% trans 'Projects' %}</a></li>
+	<li class="active"><a href="javascript:void(0)">{{ project.name }}</a></li>
+{% endblock navbar %}
+
+{% block content %}
+	{% get_obj_perms user for project as "project_perms" %}
+	<div class="container">
+		{% if 'can_add_or_remove_subjects' in project_perms %}
+		<div class="row panel panel-default">
+			<div class="panel-heading">
+				<b>{% trans 'Add new subject' %}</b>
+			</div>
+			<div class="panel-body">
+				<form method="POST">
+					{% csrf_token %}
+					{% bootstrap_form form %}
+					<button type="submit" class="btn btn-default">{% trans 'Create new subject' %}</button>
+				</form>
+			</div>
+		</div>
+		{% endif %}
+
+		<div class="row panel panel-default">
+			<div class="panel-heading">
+				<b>{% trans 'Subjects' %}</b>
+			</div>
+			<div class="panel-body">
+				{% render_table table %}
+				{% if 'can_add_or_remove_subjects' in project_perms %}
+				<a href="javascript:void(0)" class="ajax_link" id="delete_subjects">{% trans 'Delete the selected subjects' %}</a>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+	<script type="text/javascript">
+		jQuery(document).ready(function ($) {
+			new TableEvents({
+				table: '.docato #subjects',
+				delete_button : '#delete_subjects',
+				delete_url : "{% url 'delete_subjects' %}",
+				get_row_link : function () {
+					return '../subject/' + $(this).find('.select input').attr('value');
+				}
+			});
+		});
+	</script>
+{% endblock content %}

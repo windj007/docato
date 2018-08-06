@@ -1,0 +1,33 @@
+.docato #doc-info-panel li {
+	overflow-x: hidden;
+}
+
+.docato #doc_content {
+	width: 100%;
+}
+
+.docato #extracted_data {
+	overflow: auto;
+}
+
+.docato #iframe_container {
+	padding: 0;
+}
+
+.docato #slots .list {
+	overflow-y: auto;
+}
+
+.docato #frames .list {
+	overflow-y: auto;
+}
+
+.docato .edit-action-link {
+	padding-left: 5px;
+	padding-right: 5px;
+	margin-left: 5px;
+}
+
+.docato #presence {
+	width: 60px;
+}

@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+{% load staticfiles %}
+{% load i18n %}
+{% load bootstrap3 %}
+<html>
+<head>
+	<title>
+		{% block page_title %}
+		{% trans "Information extraction helper" %}
+		{% endblock page_title %}
+	</title>
+	
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+	{% block extrahead %}
+		{% bootstrap_css %}
+        <link rel="stylesheet" type="text/css" href="{% static "docato/css/base.css" %}">
+        <link rel="stylesheet" type="text/css" href="{% static "docato/css/jquery-ui-1.10.3.custom.css" %}">
+		<link rel="stylesheet" type="text/css" href="{% static "docato/css/interactive_table.css" %}">
+
+		
+		<script type="text/javascript" src="{% url 'django.views.i18n.javascript_catalog' %}"></script>
+		<script type="text/javascript" src="{% bootstrap_jquery_url %}"></script>
+        <script type="text/javascript" src="{% static "docato/js/jquery-ui-1.10.3.custom.js" %}"></script>
+        {% bootstrap_javascript %}
+        <script type="text/javascript" src="{% static "docato/js/bootbox.min.js" %}"></script>
+        <script type="text/javascript" src="{% static "docato/js/base.js" %}"></script>
+        <script type="text/javascript" src="{% static 'docato/js/table_events.js' %}"></script>
+        
+    {% endblock extrahead %}
+</head>
+<body class="docato">
+	<div id="global_wrapper">
+		<nav class="navbar navbar-default" role="navigation">
+			<div class="container-fluid">
+				<div class="navbar-header navbar-brand">
+			      	{% trans 'Information extraction helper' %}
+			    </div>
+			    
+			    <ul class="nav navbar-nav">
+				    {% block navbar %}
+				    {% endblock navbar %}
+			    </ul>
+
+			    <form id="choose_language" class="navbar-right" action="{% url 'set_language' %}" method="post">
+				        {% csrf_token %}
+			        <input name="language" type="hidden" value="{{ LANGUAGE_CODE }}" />
+			        <ul class="nav navbar-nav">
+		            {% for lang in LANGUAGES %}
+	            		{% if LANGUAGE_CODE == lang.0 %}
+	                        <li class="active"><a href="javascript:void(0)" class="bold_label">{% trans lang.1 %}</a></li>
+	                    {% else %}
+	                        <li><a class="setlang_{{ lang.0 }}" href="javascript:void(0)">{{ lang.1 }}</a></li>
+	                    {% endif %}
+		            {% endfor %}
+		            </ul>
+			    </form>
+
+			    <ul class="nav navbar-nav navbar-right">
+			    	{% if user.is_authenticated %}
+			        <li><a href="{% url 'django.contrib.auth.views.logout_then_login' %}">{% trans 'Log out' %}</a></li>
+			        {% else %}
+			        <li><a href="{% url 'django.contrib.auth.views.login' %}">{% trans 'Login' %}</a></li>
+			        {% endif %}
+		      	</ul>
+		    </div>
+	    </nav>
+		
+        
+        <div id="content">
+			{% block content %}
+			{% endblock content %}
+		</div>
+		
+		{% if not hide_footer %}
+		<div id="footer">
+            {% block footer %}
+                <div id="copyright">
+                    © 2013 {% trans "Lab.02" %}
+                    <a href="http://www.isa.ru">{% trans "ISA RAS" %}</a>.
+                </div>
+            {% endblock footer %}
+        </div>
+        {% endif %}
+	</div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+.docato #login_wrapper {
+	margin: 0px auto;
+	width: 300px;
+	margin-top: 200px;
+	text-align: center;
+}
+
+.docato #login_wrapper table td {
+	padding: 4px;
+	text-align: left;
+}

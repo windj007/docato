@@ -1,0 +1,161 @@
+/*****************************************************************************/
+/****************************** base settings ********************************/
+/*****************************************************************************/
+html, body {
+    height: 100%;
+}
+
+* {
+    padding: 0px;
+    margin: 0px;
+}
+
+.wrap-float {
+	overflow : auto;
+}
+
+.docato {
+    font-size: 13px;
+    font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
+    color: #654b24;
+}
+
+.docato a {
+    color: #654b24;
+    font-weight: bold;
+}
+
+.docato a:hover {
+    color: #8C6832;
+}
+
+.docato .ajax_link {
+    color: #654b24;
+    text-decoration: underline;
+}
+
+.docato .bold_label {
+    color: #654b24;
+    font-weight: bold;
+}
+
+.docato #global_wrapper {
+    position: relative;
+    height: auto;
+    min-height: 100%;
+}
+
+.docato h1 {
+	font-size: 1.2em;
+	text-align: center;
+	
+}
+
+.docato h2 {
+	font-size: 1.1em;
+	text-align: left;
+	
+}
+
+.docato .pagination {
+	list-style: none;
+	margin: 10px 0px;
+}
+
+.docato .pagination li {
+	display: inline;
+	margin-right: 10px;
+}
+
+.docato .hidden {
+	display: none;
+}
+
+.docato .errorlist {
+	color: #B83400;
+}
+
+.docato .notification {
+	color: #429400;
+}
+
+.docato ul.errorlist {
+	list-style: none;
+}
+
+.docato table {
+	border-collapse: collapse;
+	width: 100%;
+	margin-top: 10px;
+}
+
+.docato table th {
+	text-align: center;
+}
+
+.docato input[type=text], .docato input[type=password] {
+	border: 1px solid #cbc7bd;
+	font-size: 1.2em;
+	color: #654b24;
+}
+
+.docato .hmargin {
+	margin-left: 10px;
+	margin-right: 10px;
+}
+
+
+/*****************************************************************************/
+/********************************* header ************************************/
+/*****************************************************************************/
+.docato #header {
+    width: 100%;
+    overflow: auto;
+}
+
+/*****************************************************************************/
+/******************************** content ************************************/
+/*****************************************************************************/
+.docato #content {
+    margin: 0px auto;
+}
+
+/*****************************************************************************/
+/********************************* footer ************************************/
+/*****************************************************************************/
+.docato #footer {
+    position: absolute;
+    bottom: 0;
+    text-align: center;
+    width: 100%;
+    padding-top: 20px;
+    padding-bottom: 10px;
+}
+
+.docato #copyright {
+    color: #6d6d6d;
+    font-size: 10px;
+}
+
+/*****************************************************************************/
+/******************************* typesystem **********************************/
+/*****************************************************************************/
+.docato #frametypes_list table td {
+	text-align: center;
+}
+
+.docato .slots_list th.title {
+	width: 150px;
+}
+
+.docato .slots_list th.type {
+	width: 100px;
+}
+
+.docato .slots_list th.mandatory {
+	width: 100px;
+}
+
+.docato .slots_list th.delete {
+	width: 60px;
+}

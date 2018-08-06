@@ -1,0 +1,24 @@
+.docato .interactive_table {
+	text-align: center;
+}
+
+.docato .interactive_table .select {
+	width: 30px;
+}
+
+.docato .interactive_table thead {
+	background: #f8f7f6 url(../img/jqueryui/ui-bg_fine-grain_10_f8f7f6_60x60.png) 50% 50% repeat;
+}
+
+.docato .interactive_table tr.even {
+	background: #f8f7f6 url(../img/jqueryui/ui-bg_fine-grain_10_f8f7f6_60x60.png) 50% 50% repeat;
+}
+
+.docato .interactive_table tbody tr {
+	border-top: 1px solid #cbc7bd;
+}
+
+.docato .interactive_table tbody tr:hover {
+	background: #cbc7bd;
+	cursor: pointer;
+}

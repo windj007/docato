@@ -1,0 +1,24 @@
+.docato #content {
+	width: 1000px;
+}
+
+.docato #new_subject {
+	text-align: center;
+}
+
+.docato #new_subject #id_name {
+	width: 300px
+}
+
+.docato #subjects {
+	width: 100%;
+	margin-top: 10px;
+}
+
+.docato #subjects tbody .name {
+	text-align: left;
+}
+
+.docato #subjects .timestamp {
+	width: 230px;
+}

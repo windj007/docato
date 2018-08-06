@@ -1,0 +1,33 @@
+{% extends "docato/base.html" %}
+{% load staticfiles %}
+{% load render_table from django_tables2 %}
+{% load i18n %}
+
+{% block extrahead %}
+	{{ block.super }}
+	<link rel="stylesheet" type="text/css" href="{% static "docato/css/interactive_table.css" %}">
+	<link rel="stylesheet" type="text/css" href="{% static "docato/css/main.css" %}">
+
+	<script type="text/javascript" src="{% static 'docato/js/table_events.js' %}"></script>
+	<script type="text/javascript" src="{% static 'docato/js/main.js' %}"></script>
+{% endblock extrahead %}
+
+{% block content %}
+<div class="panel">
+	<h1>{% trans 'Open new subject' %}</h1>
+	
+	<form id="new_subject" action="{% url 'new_subject' %}" method="post">
+		{% csrf_token %}
+		<label for="{{ new_subj_form.name.auto_id }}">{% trans 'Please enter name of the new subject' %}</label>
+		{{ new_subj_form.name }}
+		<input type="submit" value="{% trans 'Create new subject' %}" />
+	</form>
+</div>
+
+<div class="panel">
+<h1>{% trans 'Already investigated subjects' %}</h1>
+{% render_table table %}
+<a href="javascript:void(0)" class=".ajax_link" id="delete_subjects">{% trans 'Delete the selected subjects' %}</a>
+</div>
+
+{% endblock content %}

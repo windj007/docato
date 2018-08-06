@@ -1,0 +1,9 @@
+{% extends 'docato/typesystem/slots/base.html' %}
+{% load i18n %}
+{% block other_properties %}
+	<b>{% trans 'Default value' %}</b>:
+	<span class="inline-editable"
+		data-value="{{ slot.default_value }}"
+		data-name="default_value">{{ slot.default_value }}</span>
+	<br />
+{% endblock other_properties %}

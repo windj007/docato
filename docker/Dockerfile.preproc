@@ -1,0 +1,48 @@
+FROM windj007/docato-base
+
+RUN apt-get update && \
+	apt-get install -yqq apache2 build-essential cmake \
+		pkg-config libspiro-dev libpng-dev libjpeg-dev \
+        git wget libopenjp2-7-dev libfontconfig1-dev \
+		libtool autoconf python python-dev libglib2.0-dev libxml2-dev \
+		gettext libcairo2-dev libpango1.0-dev openjdk-8-jdk supervisor xvfb && \
+	apt-get clean
+RUN wget --no-check-certificate -O /tmp/poppler_data.tar.gz http://poppler.freedesktop.org/poppler-data-0.4.7.tar.gz && \
+	cd /tmp && \
+	tar xfv poppler_data.tar.gz && \
+	cd poppler-data-0.4.7 && \
+	cmake . && \
+	make install
+
+RUN wget --no-check-certificate -O /tmp/poppler.tar.xz http://poppler.freedesktop.org/poppler-0.33.0.tar.xz && \
+	cd /tmp && \
+	tar xfv poppler.tar.xz && \
+	cd poppler-0.33.0 && \
+	./configure --enable-xpdf-headers && \
+	make install
+
+RUN git clone https://github.com/coolwanglu/fontforge.git /tmp/fontforge && \
+	cd /tmp/fontforge && \
+	./bootstrap && \
+	./configure && \
+	make install
+
+RUN git clone git://github.com/coolwanglu/pdf2htmlEX.git /tmp/pdf2htmlEX && \
+	cd /tmp/pdf2htmlEX && \
+	cmake . && make && make install
+
+RUN pip install redis
+
+RUN ldconfig
+
+COPY docker/preproc_supervisord.conf /etc/supervisor/supervisord.conf
+
+ADD docato /docato/src
+
+ENV DISPLAY=:0
+ENV C_FORCE_ROOT=1
+
+ENTRYPOINT ["/docato/entrypoint.sh"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+
+# RUN wget -O /docato/thirdparty/tika/tika http://www.apache.org/dyn/closer.cgi/tika/tika-app-1.18.jar
