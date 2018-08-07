@@ -42,7 +42,9 @@ ADD docato /docato/src
 ENV DISPLAY=:0
 ENV C_FORCE_ROOT=1
 
+COPY docker/preproc_entrypoint.sh /docato/entrypoint.sh
 ENTRYPOINT ["/docato/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 
-# RUN wget -O /docato/thirdparty/tika/tika http://www.apache.org/dyn/closer.cgi/tika/tika-app-1.18.jar
+# RUN mkdir -p /docato/thirdparty/tika/ && \
+#     wget -O /docato/thirdparty/tika/tika http://www.apache.org/dyn/closer.cgi/tika/tika-app-1.18.jar
